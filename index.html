@@ -229,6 +229,16 @@
     }
   }
 
+  function getWeekName(dateValue) {
+    const date = new Date(dateValue);
+    if (Number.isNaN(date.getTime())) return '이름 없는 기록';
+    const year = String(date.getFullYear()).slice(-2);
+    const jan1 = new Date(date.getFullYear(), 0, 1);
+    const dayOfYear = Math.floor((new Date(date.getFullYear(), date.getMonth(), date.getDate()) - jan1) / 86400000) + 1;
+    const week = Math.ceil((dayOfYear + jan1.getDay()) / 7);
+    return `${year}년 ${week}주차`;
+  }
+
   function currentSnapshot() {
     const counts = {};
     document.querySelectorAll('input[data-count]').forEach(input => {
@@ -240,7 +250,7 @@
     return {
       id: (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + '-' + Math.random().toString(36).slice(2),
       savedAt: new Date().toISOString(),
-      name: '',
+      name: getWeekName(new Date()),
       confirmed: false,
       counts,
       named,
@@ -275,7 +285,7 @@
       const dateText = Number.isNaN(date.getTime()) ? '날짜 미상' : date.toLocaleString('ko-KR');
       const confirmed = record.confirmed === true;
       const escapedName = String(record.name || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-      const displayName = escapedName || '이름 없는 기록';
+      const displayName = escapedName || getWeekName(record.savedAt);
       return `<div class="history-item">
         <div class="history-name-row">
           <div class="history-name-display" data-name-display="${record.id}"><span class="history-record-name">${displayName}</span><button class="icon-button" type="button" data-edit-name="${record.id}" aria-label="기록 이름 수정" title="이름 수정">✎</button></div>
@@ -353,9 +363,7 @@
     const record = records.find(item => item.id === id);
     if (!record) return;
     record.confirmed = record.confirmed !== true;
-    if (saveRecordChanges(records)) {
-      alert(record.confirmed ? '기록을 확정했어요. 확정된 기록은 삭제되지 않아요.' : '확정을 해제했어요. 이제 기록을 삭제할 수 있어요.');
-    }
+    saveRecordChanges(records);
   }
 
   function deleteRecord(id) {
