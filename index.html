@@ -122,7 +122,7 @@
       </div>
     </div>
     <div class="summary-card">
-      <div class="label">십일조 합계</div>
+      <div class="label">십일조 · 감사 · 장학 · 선교</div>
       <div class="amount" id="titheSummaryTotal">0원</div>
     </div>
   </section>
@@ -143,11 +143,11 @@
     </div>
   </section>
   <section class="panel">
-    <div class="panel-title"><h2>십일조</h2></div>
+    <div class="panel-title"><h2>십일조 · 감사 · 장학 · 선교</h2></div>
     <p class="sub">권종별 개수를 입력하세요.</p>
     <div class="denom-head"><span>권종</span><span style="text-align:right">개수</span><span style="text-align:right">금액</span></div>
     <div id="titheRows"></div>
-    <div class="row-total">십일조 합계 <strong id="titheTotal">0원</strong></div>
+    <div class="row-total">십일조 · 감사 · 장학 · 선교 합계 <strong id="titheTotal">0원</strong></div>
   </section>
   <div class="actions">
     <button class="btn-primary" id="saveBtn" type="button">저장</button>
@@ -293,7 +293,7 @@
         </div>
         <div class="history-date">${dateText}</div>
         ${confirmed ? '<div class="history-status">✓ 확정된 기록 · 삭제 보호됨</div>' : ''}
-        <div class="history-totals">주일헌금 ${fmt(record.sunday || 0)} (기명 ${fmt(record.named || 0)}, 무기명 ${fmt((record.sunday || 0) - (record.named || 0))})<br>십일조 ${fmt(record.tithe || 0)}</div>
+        <div class="history-totals">주일헌금 ${fmt(record.sunday || 0)} (기명 ${fmt(record.named || 0)}, 무기명 ${fmt((record.sunday || 0) - (record.named || 0))})<br>십일조 · 감사 · 장학 · 선교 ${fmt(record.tithe || 0)}</div>
         <div class="history-actions">
           <button class="btn-primary" type="button" data-load-record="${record.id}">불러오기</button>
           <button class="${confirmed ? 'btn-confirmed' : 'btn-secondary'}" type="button" data-confirm-record="${record.id}">${confirmed ? '확정 해제' : '확정'}</button>
@@ -379,6 +379,13 @@
   }
 
   document.getElementById('saveBtn').addEventListener('click', saveCurrent);
+  // 십일조 100원권 수량 입력 후 Enter를 누르면 저장합니다.
+  document.querySelector('[data-count="tithe-5"]').addEventListener('keydown', event => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      saveCurrent();
+    }
+  });
   function openHistory() {
     renderHistory();
     document.getElementById('historyBackdrop').classList.add('open');
