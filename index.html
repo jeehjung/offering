@@ -344,7 +344,6 @@
         ${confirmed ? '<div class="history-status">✓ 확정된 기록 · 삭제 보호됨</div>' : ''}
         <div class="history-totals">주일헌금 ${fmt(record.sunday || 0)} (기명 ${fmt(record.named || 0)}, 무기명 ${fmt((record.sunday || 0) - (record.named || 0))})<br>십일조 · 감사 · 장학 · 선교 ${fmt(record.tithe || 0)}</div>
         <div class="history-actions">
-          <button class="btn-primary" type="button" data-load-record="${record.id}">불러오기</button>
           <button class="btn-secondary" type="button" data-edit-record="${record.id}" ${confirmed ? 'disabled title="확정 해제 후 수정할 수 있습니다"' : ''}>수정</button>
           <button class="${confirmed ? 'btn-confirmed' : 'btn-secondary'}" type="button" data-confirm-record="${record.id}">${confirmed ? '확정 해제' : '확정'}</button>
           <button class="btn-danger" type="button" data-delete-record="${record.id}" ${confirmed ? 'disabled title="확정 해제 후 삭제할 수 있습니다"' : ''}>기록 지우기</button>
@@ -474,14 +473,12 @@
     if (event.key === 'Escape' && document.getElementById('historyBackdrop').classList.contains('open')) closeHistory();
   });
   document.getElementById('historyList').addEventListener('click', event => {
-    const loadButton = event.target.closest('[data-load-record]');
     const editButton = event.target.closest('[data-edit-record]');
     const deleteButton = event.target.closest('[data-delete-record]');
     const nameButton = event.target.closest('[data-save-name]');
     const editNameButton = event.target.closest('[data-edit-name]');
     const cancelNameButton = event.target.closest('[data-cancel-name]');
     const confirmButton = event.target.closest('[data-confirm-record]');
-    if (loadButton) loadRecord(loadButton.dataset.loadRecord);
     if (editButton) editRecord(editButton.dataset.editRecord);
     if (deleteButton) deleteRecord(deleteButton.dataset.deleteRecord);
     if (nameButton) saveRecordName(nameButton.dataset.saveName);
