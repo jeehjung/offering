@@ -49,10 +49,21 @@
   .break-row strong { font-size:16px; font-variant-numeric:tabular-nums; }
   .break-row.total { border-top:1px solid #dce8de; margin-top:5px; padding-top:11px; font-weight:800; }
   .warning { color:#b42318; background:#fff0ee; border-radius:9px; padding:9px 11px; margin-top:10px; font-size:12px; display:none; }
-  .actions { display:flex; gap:9px; margin:16px 0 10px; }
+  .actions { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin:16px 0 10px; }
   button { border:0; border-radius:12px; padding:13px 15px; font-size:14px; font-weight:700; cursor:pointer; }
-  .btn-primary { background:var(--green); color:white; flex:1; }
+  .btn-primary { background:var(--green); color:white; }
   .btn-secondary { background:white; color:var(--green); border:1px solid var(--line); }
+  .history-panel { display:none; background:var(--white); border:1px solid var(--line); border-radius:16px; padding:15px; margin:12px 0; }
+  .history-panel.open { display:block; }
+  .history-header { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px; }
+  .history-header h2 { font-size:17px; }
+  .history-item { border-top:1px solid var(--line); padding:12px 0; display:grid; gap:7px; }
+  .history-item:first-child { border-top:0; }
+  .history-date { font-size:13px; font-weight:700; }
+  .history-totals { color:var(--muted); font-size:12px; line-height:1.6; }
+  .history-actions { display:flex; gap:7px; }
+  .history-actions button { padding:8px 10px; font-size:12px; }
+  .empty-history { color:var(--muted); font-size:13px; padding:10px 0; }
   .footnote { text-align:center; color:var(--muted); font-size:11px; line-height:1.6; margin-top:14px; }
   @media(max-width:420px) {
     .denom-head, .denom-row { grid-template-columns:minmax(0,1fr) 70px 82px; gap:6px; }
@@ -120,8 +131,16 @@
     <div id="titheRows"></div>
     <div class="row-total">십일조 합계 <strong id="titheTotal">0원</strong></div>
   </section>
-  <div class="actions"><button class="btn-primary" id="printBtn" type="button">계수 결과 인쇄</button><button class="btn-secondary" id="resetBtn" type="button">전체 초기화</button></div>
-  <p class="footnote">입력한 금액은 이 화면에서 계산에만 사용됩니다. 별도 서버로 전송하거나 저장하지 않습니다.</p>
+  <div class="actions">
+    <button class="btn-primary" id="saveBtn" type="button">저장</button>
+    <button class="btn-secondary" id="historyBtn" type="button" aria-expanded="false">기존 기록 보기</button>
+    <button class="btn-secondary" id="resetBtn" type="button">전체 초기화</button>
+  </div>
+  <section class="history-panel" id="historyPanel" aria-label="저장된 헌금 기록">
+    <div class="history-header"><h2>저장된 기록</h2><button class="btn-secondary" id="closeHistoryBtn" type="button">닫기</button></div>
+    <div id="historyList"></div>
+  </section>
+  <p class="footnote">저장된 기록은 이 기기의 브라우저에 보관됩니다. 브라우저 데이터 삭제 시 기록이 사라질 수 있습니다.</p>
 </main>
 <script>
 (() => {
@@ -181,7 +200,119 @@
     document.querySelectorAll('input[type="number"]').forEach(input => input.value = '');
     update();
   });
-  document.getElementById('printBtn').addEventListener('click', () => window.print());
+  const STORAGE_KEY = 'offering-counter-records-v1';
+
+  function getRecords() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function currentSnapshot() {
+    const counts = {};
+    document.querySelectorAll('input[data-count]').forEach(input => {
+      counts[input.dataset.count] = safeCount(input.value);
+    });
+    const sunday = calculateSection('sunday');
+    const tithe = calculateSection('tithe');
+    const named = safeAmount(document.getElementById('namedAmount').value);
+    return {
+      id: (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + '-' + Math.random().toString(36).slice(2),
+      savedAt: new Date().toISOString(),
+      counts,
+      named,
+      sunday,
+      tithe
+    };
+  }
+
+  function saveCurrent() {
+    const record = currentSnapshot();
+    try {
+      const records = getRecords();
+      records.unshift(record);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+      renderHistory();
+      const panel = document.getElementById('historyPanel');
+      panel.classList.add('open');
+      document.getElementById('historyBtn').setAttribute('aria-expanded', 'true');
+      alert('헌금 계수 내역을 저장했어요.');
+    } catch (error) {
+      alert('기록을 저장하지 못했어요. 브라우저 저장 공간 설정을 확인해 주세요.');
+    }
+  }
+
+  function renderHistory() {
+    const list = document.getElementById('historyList');
+    const records = getRecords();
+    if (!records.length) {
+      list.innerHTML = '<div class="empty-history">저장된 기록이 없습니다.</div>';
+      return;
+    }
+    list.innerHTML = records.map(record => {
+      const date = new Date(record.savedAt);
+      const dateText = Number.isNaN(date.getTime()) ? '날짜 미상' : date.toLocaleString('ko-KR');
+      return `<div class="history-item">
+        <div class="history-date">${dateText}</div>
+        <div class="history-totals">주일헌금 ${fmt(record.sunday || 0)} (기명 ${fmt(record.named || 0)}, 무기명 ${fmt((record.sunday || 0) - (record.named || 0))})<br>십일조 ${fmt(record.tithe || 0)}</div>
+        <div class="history-actions">
+          <button class="btn-primary" type="button" data-load-record="${record.id}">불러오기</button>
+          <button class="btn-secondary" type="button" data-delete-record="${record.id}">삭제</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function loadRecord(id) {
+    const record = getRecords().find(item => item.id === id);
+    if (!record) return;
+    document.querySelectorAll('input[data-count]').forEach(input => {
+      input.value = record.counts && record.counts[input.dataset.count] ? record.counts[input.dataset.count] : '';
+    });
+    document.getElementById('namedAmount').value = record.named || '';
+    update();
+    document.getElementById('historyPanel').classList.remove('open');
+    document.getElementById('historyBtn').setAttribute('aria-expanded', 'false');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function deleteRecord(id) {
+    if (!confirm('이 저장 기록을 삭제할까요?')) return;
+    const records = getRecords().filter(item => item.id !== id);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+      renderHistory();
+    } catch (error) {
+      alert('기록을 삭제하지 못했어요.');
+    }
+  }
+
+  document.getElementById('saveBtn').addEventListener('click', saveCurrent);
+  document.getElementById('historyBtn').addEventListener('click', () => {
+    const panel = document.getElementById('historyPanel');
+    const willOpen = !panel.classList.contains('open');
+    panel.classList.toggle('open', willOpen);
+    document.getElementById('historyBtn').setAttribute('aria-expanded', String(willOpen));
+    if (willOpen) renderHistory();
+  });
+  document.getElementById('closeHistoryBtn').addEventListener('click', () => {
+    document.getElementById('historyPanel').classList.remove('open');
+    document.getElementById('historyBtn').setAttribute('aria-expanded', 'false');
+  });
+  document.getElementById('historyList').addEventListener('click', event => {
+    const loadButton = event.target.closest('[data-load-record]');
+    const deleteButton = event.target.closest('[data-delete-record]');
+    if (loadButton) loadRecord(loadButton.dataset.loadRecord);
+    if (deleteButton) deleteRecord(deleteButton.dataset.deleteRecord);
+  });
+  // 전체 초기화는 현재 입력값만 비우고, 저장된 기록은 유지합니다.
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    document.querySelectorAll('input[type="number"]').forEach(input => input.value = '');
+    update();
+  });
   update();
 })();
 </script>
