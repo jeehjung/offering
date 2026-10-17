@@ -49,7 +49,9 @@
   .break-row strong { font-size:16px; font-variant-numeric:tabular-nums; }
   .break-row.total { border-top:1px solid #dce8de; margin-top:5px; padding-top:11px; font-weight:800; }
   .warning { color:#b42318; background:#fff0ee; border-radius:9px; padding:9px 11px; margin-top:10px; font-size:12px; display:none; }
-  .actions { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin:16px 0 10px; }
+  .top-actions { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin:0 0 14px; }
+  .actions { display:flex; gap:9px; margin:16px 0 10px; }
+  .actions .btn-primary { flex:1; }
   button { border:0; border-radius:12px; padding:13px 15px; font-size:14px; font-weight:700; cursor:pointer; }
   .btn-primary { background:var(--green); color:white; }
   .btn-secondary { background:white; color:var(--green); border:1px solid var(--line); }
@@ -94,6 +96,10 @@
   </div>
 </header>
 <main>
+  <div class="top-actions">
+    <button class="btn-secondary" id="historyBtn" type="button" aria-expanded="false">기존 기록 보기</button>
+    <button class="btn-secondary" id="resetBtn" type="button">전체 초기화</button>
+  </div>
   <section class="summary" aria-live="polite">
     <div class="summary-card">
       <div class="label">주일헌금 합계</div>
@@ -133,8 +139,6 @@
   </section>
   <div class="actions">
     <button class="btn-primary" id="saveBtn" type="button">저장</button>
-    <button class="btn-secondary" id="historyBtn" type="button" aria-expanded="false">기존 기록 보기</button>
-    <button class="btn-secondary" id="resetBtn" type="button">전체 초기화</button>
   </div>
   <section class="history-panel" id="historyPanel" aria-label="저장된 헌금 기록">
     <div class="history-header"><h2>저장된 기록</h2><button class="btn-secondary" id="closeHistoryBtn" type="button">닫기</button></div>
