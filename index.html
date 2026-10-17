@@ -55,7 +55,9 @@
   button { border:0; border-radius:12px; padding:13px 15px; font-size:14px; font-weight:700; cursor:pointer; }
   .btn-primary { background:var(--green); color:white; }
   .btn-secondary { background:white; color:var(--green); border:1px solid var(--line); }
-  .history-panel { display:none; background:var(--white); border:1px solid var(--line); border-radius:16px; padding:15px; margin:12px 0; }
+  .history-backdrop { display:none; position:fixed; inset:0; z-index:1000; background:rgba(10,20,15,.58); padding:18px; align-items:center; justify-content:center; }
+  .history-backdrop.open { display:flex; }
+  .history-panel { display:block; background:var(--white); border:1px solid var(--line); border-radius:18px; padding:16px; margin:0; width:min(100%,560px); max-height:min(82vh,720px); overflow:auto; box-shadow:0 18px 60px rgba(0,0,0,.24); }
   .history-panel.open { display:block; }
   .history-header { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px; }
   .history-header h2 { font-size:17px; }
@@ -140,10 +142,12 @@
   <div class="actions">
     <button class="btn-primary" id="saveBtn" type="button">저장</button>
   </div>
-  <section class="history-panel" id="historyPanel" aria-label="저장된 헌금 기록">
-    <div class="history-header"><h2>저장된 기록</h2><button class="btn-secondary" id="closeHistoryBtn" type="button">닫기</button></div>
-    <div id="historyList"></div>
-  </section>
+  <div class="history-backdrop" id="historyBackdrop" role="dialog" aria-modal="true" aria-labelledby="historyTitle">
+    <section class="history-panel" id="historyPanel" aria-label="저장된 헌금 기록">
+      <div class="history-header"><h2 id="historyTitle">저장된 기록</h2><button class="btn-secondary" id="closeHistoryBtn" type="button">닫기</button></div>
+      <div id="historyList"></div>
+    </section>
+  </div>
   <p class="footnote">저장된 기록은 이 기기의 브라우저에 보관됩니다. 브라우저 데이터 삭제 시 기록이 사라질 수 있습니다.</p>
 </main>
 <script>
@@ -240,9 +244,7 @@
       records.unshift(record);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
       renderHistory();
-      const panel = document.getElementById('historyPanel');
-      panel.classList.add('open');
-      document.getElementById('historyBtn').setAttribute('aria-expanded', 'true');
+      openHistory();
       alert('헌금 계수 내역을 저장했어요.');
     } catch (error) {
       alert('기록을 저장하지 못했어요. 브라우저 저장 공간 설정을 확인해 주세요.');
@@ -278,8 +280,7 @@
     });
     document.getElementById('namedAmount').value = record.named || '';
     update();
-    document.getElementById('historyPanel').classList.remove('open');
-    document.getElementById('historyBtn').setAttribute('aria-expanded', 'false');
+    closeHistory();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -295,16 +296,25 @@
   }
 
   document.getElementById('saveBtn').addEventListener('click', saveCurrent);
-  document.getElementById('historyBtn').addEventListener('click', () => {
-    const panel = document.getElementById('historyPanel');
-    const willOpen = !panel.classList.contains('open');
-    panel.classList.toggle('open', willOpen);
-    document.getElementById('historyBtn').setAttribute('aria-expanded', String(willOpen));
-    if (willOpen) renderHistory();
-  });
-  document.getElementById('closeHistoryBtn').addEventListener('click', () => {
+  function openHistory() {
+    renderHistory();
+    document.getElementById('historyBackdrop').classList.add('open');
+    document.getElementById('historyPanel').classList.add('open');
+    document.getElementById('historyBtn').setAttribute('aria-expanded', 'true');
+    document.getElementById('closeHistoryBtn').focus();
+  }
+  function closeHistory() {
+    document.getElementById('historyBackdrop').classList.remove('open');
     document.getElementById('historyPanel').classList.remove('open');
     document.getElementById('historyBtn').setAttribute('aria-expanded', 'false');
+  }
+  document.getElementById('historyBtn').addEventListener('click', openHistory);
+  document.getElementById('closeHistoryBtn').addEventListener('click', closeHistory);
+  document.getElementById('historyBackdrop').addEventListener('click', event => {
+    if (event.target.id === 'historyBackdrop') closeHistory();
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && document.getElementById('historyBackdrop').classList.contains('open')) closeHistory();
   });
   document.getElementById('historyList').addEventListener('click', event => {
     const loadButton = event.target.closest('[data-load-record]');
