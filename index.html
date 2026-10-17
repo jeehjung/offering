@@ -81,7 +81,10 @@
 <main>
   <section class="summary" aria-live="polite">
     <div class="summary-card primary"><div class="label">전체 헌금 합계</div><div class="amount" id="grandTotal">0원</div></div>
-    <div class="summary-card"><div class="label">주일헌금 무기명</div><div class="amount" id="anonymousSummary">0원</div></div>
+    <div class="summary-card"><div class="label">주일헌금 합계</div><div class="amount" id="sundaySummaryTotal">0원</div></div>
+    <div class="summary-card"><div class="label">주일헌금 · 기명</div><div class="amount" id="namedSummary">0원</div></div>
+    <div class="summary-card"><div class="label">주일헌금 · 무기명</div><div class="amount" id="anonymousSummary">0원</div></div>
+    <div class="summary-card"><div class="label">십일조 합계</div><div class="amount" id="titheSummaryTotal">0원</div></div>
   </section>
   <section class="panel">
     <div class="panel-title"><h2>주일헌금</h2></div>
@@ -144,7 +147,10 @@
     document.getElementById('titheTotal').textContent = fmt(tithe);
     document.getElementById('namedDisplay').textContent = fmt(named);
     document.getElementById('anonymousAmount').textContent = fmt(anonymous);
+    document.getElementById('sundaySummaryTotal').textContent = fmt(sunday);
+    document.getElementById('namedSummary').textContent = fmt(named);
     document.getElementById('anonymousSummary').textContent = fmt(anonymous);
+    document.getElementById('titheSummaryTotal').textContent = fmt(tithe);
     document.getElementById('grandTotal').textContent = fmt(sunday + tithe);
     document.getElementById('namedWarning').style.display = named > sunday ? 'block' : 'none';
   }
