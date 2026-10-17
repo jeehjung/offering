@@ -90,7 +90,7 @@
     <div id="sundayRows"></div>
     <div class="row-total">주일헌금 합계 <strong id="sundayTotal">0원</strong></div>
     <div class="named-area">
-      <div class="named-line"><label for="namedAmount">기명 금액 <span>주일헌금 중 이름이 확인된 헌금</span></label><input id="namedAmount" type="number" min="0" step="1" inputmode="numeric" placeholder="금액 입력" value="0"></div>
+      <div class="named-line"><label for="namedAmount">기명 금액 <span>주일헌금 중 이름이 확인된 헌금</span></label><input id="namedAmount" type="number" min="0" step="1" inputmode="numeric" placeholder="금액 입력" value=""></div>
       <div class="breakdown">
         <div class="break-row"><span>기명</span><strong id="namedDisplay">0원</strong></div>
         <div class="break-row"><span>무기명 (자동 계산)</span><strong id="anonymousAmount">0원</strong></div>
@@ -119,7 +119,7 @@
     const container = document.getElementById(containerId);
     container.innerHTML = denominations.map((denom, index) => `
       <div class="denom-row"><div class="money">${denom.toLocaleString('ko-KR')}원<small>권종 금액</small></div>
-      <div><input type="number" min="0" step="1" inputmode="numeric" value="0" aria-label="${prefix} ${denom}원 개수" data-count="${prefix}-${index}"></div>
+      <div><input type="number" min="0" step="1" inputmode="numeric" value="" aria-label="${prefix} ${denom}원 개수" data-count="${prefix}-${index}"></div>
       <div><input type="text" value="0원" readonly aria-label="${prefix} ${denom}원 금액" data-line="${prefix}-${index}"></div></div>`).join('');
   }
   makeRows('sundayRows', 'sunday'); makeRows('titheRows', 'tithe');
@@ -161,7 +161,7 @@
   });
   // 전체 초기화: 모든 권종 수량과 기명 금액을 0으로 되돌립니다.
   document.getElementById('resetBtn').addEventListener('click', () => {
-    document.querySelectorAll('input[type="number"]').forEach(input => input.value = '0');
+    document.querySelectorAll('input[type="number"]').forEach(input => input.value = '');
     update();
   });
   document.getElementById('printBtn').addEventListener('click', () => window.print());
