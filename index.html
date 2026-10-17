@@ -64,8 +64,13 @@
   .history-item { border-top:1px solid var(--line); padding:12px 0; display:grid; gap:7px; }
   .history-item:first-child { border-top:0; }
   .history-date { font-size:13px; font-weight:700; }
-  .history-name-row { display:flex; gap:7px; align-items:center; }
-  .history-name-row input { text-align:left; height:38px; flex:1; }
+  .history-name-row { display:flex; gap:7px; align-items:center; min-width:0; }
+  .history-record-name { font-size:14px; font-weight:700; overflow-wrap:anywhere; flex:1; min-width:0; }
+  .history-name-row input { text-align:left; height:38px; flex:1; min-width:0; }
+  .icon-button { padding:7px 9px; min-width:36px; background:white; color:var(--green); border:1px solid var(--line); border-radius:9px; line-height:1; font-size:16px; }
+  .history-name-edit { display:none; gap:7px; align-items:center; }
+  .history-name-edit.open { display:flex; }
+  .history-name-display.hidden { display:none; }
   .history-totals { color:var(--muted); font-size:12px; line-height:1.6; }
   .history-status { font-size:12px; font-weight:700; color:var(--green2); }
   .history-actions { display:flex; flex-wrap:wrap; gap:7px; }
@@ -270,8 +275,12 @@
       const dateText = Number.isNaN(date.getTime()) ? '날짜 미상' : date.toLocaleString('ko-KR');
       const confirmed = record.confirmed === true;
       const escapedName = String(record.name || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      const displayName = escapedName || '이름 없는 기록';
       return `<div class="history-item">
-        <div class="history-name-row"><input type="text" aria-label="기록 이름" placeholder="기록 이름 (예: 10월 18일 주일헌금)" value="${escapedName}" data-record-name="${record.id}"><button class="btn-secondary" type="button" data-save-name="${record.id}">이름 저장</button></div>
+        <div class="history-name-row">
+          <div class="history-name-display" data-name-display="${record.id}"><span class="history-record-name">${displayName}</span><button class="icon-button" type="button" data-edit-name="${record.id}" aria-label="기록 이름 수정" title="이름 수정">✎</button></div>
+          <div class="history-name-edit" data-name-editor="${record.id}"><input type="text" aria-label="기록 이름" placeholder="기록 이름 입력" value="${escapedName}" data-record-name="${record.id}"><button class="btn-secondary" type="button" data-save-name="${record.id}">저장</button><button class="btn-secondary" type="button" data-cancel-name="${record.id}">취소</button></div>
+        </div>
         <div class="history-date">${dateText}</div>
         ${confirmed ? '<div class="history-status">✓ 확정된 기록 · 삭제 보호됨</div>' : ''}
         <div class="history-totals">주일헌금 ${fmt(record.sunday || 0)} (기명 ${fmt(record.named || 0)}, 무기명 ${fmt((record.sunday || 0) - (record.named || 0))})<br>십일조 ${fmt(record.tithe || 0)}</div>
@@ -305,6 +314,28 @@
       alert('기록을 저장하지 못했어요. 브라우저 저장 공간 설정을 확인해 주세요.');
       return false;
     }
+  }
+
+  function editRecordName(id) {
+    const display = document.querySelector(`[data-name-display="${id}"]`);
+    const editor = document.querySelector(`[data-name-editor="${id}"]`);
+    if (!display || !editor) return;
+    display.classList.add('hidden');
+    editor.classList.add('open');
+    const input = editor.querySelector('[data-record-name]');
+    input.focus();
+    input.select();
+  }
+
+  function cancelRecordName(id) {
+    const display = document.querySelector(`[data-name-display="${id}"]`);
+    const editor = document.querySelector(`[data-name-editor="${id}"]`);
+    const record = getRecords().find(item => item.id === id);
+    if (!display || !editor) return;
+    const input = editor.querySelector('[data-record-name]');
+    input.value = record ? (record.name || '') : '';
+    display.classList.remove('hidden');
+    editor.classList.remove('open');
   }
 
   function saveRecordName(id) {
@@ -364,10 +395,14 @@
     const loadButton = event.target.closest('[data-load-record]');
     const deleteButton = event.target.closest('[data-delete-record]');
     const nameButton = event.target.closest('[data-save-name]');
+    const editNameButton = event.target.closest('[data-edit-name]');
+    const cancelNameButton = event.target.closest('[data-cancel-name]');
     const confirmButton = event.target.closest('[data-confirm-record]');
     if (loadButton) loadRecord(loadButton.dataset.loadRecord);
     if (deleteButton) deleteRecord(deleteButton.dataset.deleteRecord);
     if (nameButton) saveRecordName(nameButton.dataset.saveName);
+    if (editNameButton) editRecordName(editNameButton.dataset.editName);
+    if (cancelNameButton) cancelRecordName(cancelNameButton.dataset.cancelName);
     if (confirmButton) toggleRecordConfirmation(confirmButton.dataset.confirmRecord);
   });
   // 전체 초기화는 현재 입력값만 비우고, 저장된 기록은 유지합니다.
