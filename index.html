@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#173b32">
+<title>헌금 계수</title>
+<style>
+  :root { color-scheme: light; --green:#173b32; --green2:#245548; --cream:#f6f5ef; --line:#e2e6df; --muted:#66736c; --white:#fff; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans KR",sans-serif; background:var(--cream); color:#1e2924; }
+  header { background:var(--green); color:white; padding:24px 18px 28px; }
+  .head-inner, main { max-width:760px; margin:0 auto; }
+  .eyebrow { font-size:12px; letter-spacing:.12em; opacity:.75; margin-bottom:7px; }
+  h1 { font-size:28px; margin:0 0 8px; }
+  header p { margin:0; font-size:14px; opacity:.85; }
+  main { padding:18px 14px 40px; }
+  .summary { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
+  .summary-card { background:var(--white); border:1px solid var(--line); border-radius:16px; padding:16px; }
+  .summary-card .label { font-size:13px; color:var(--muted); margin-bottom:8px; }
+  .summary-card .amount { font-size:clamp(20px,5vw,27px); font-weight:800; letter-spacing:-.03em; overflow-wrap:anywhere; }
+  .summary-card.primary { background:var(--green); color:white; border-color:var(--green); }
+  .summary-card.primary .label { color:#d5e4dc; }
+  .panel { background:var(--white); border:1px solid var(--line); border-radius:18px; padding:18px 16px; margin-bottom:14px; box-shadow:0 2px 8px rgba(22,50,39,.035); }
+  .panel-title { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:4px; }
+  h2 { font-size:19px; margin:0; }
+  .sub { color:var(--muted); font-size:12px; margin:4px 0 16px; }
+  .denom-head, .denom-row { display:grid; grid-template-columns:minmax(0,1fr) 92px 92px; gap:8px; align-items:center; }
+  .denom-head { font-size:11px; color:var(--muted); padding:0 4px 7px; }
+  .denom-row { padding:8px 0; border-top:1px solid #eef0eb; }
+  .money { font-weight:700; font-size:15px; }
+  .money small { display:block; color:var(--muted); font-size:11px; font-weight:400; margin-top:3px; }
+  input[type=number] { width:100%; min-width:0; border:1px solid #d9dfd8; border-radius:10px; padding:11px 7px; font-size:16px; text-align:right; background:#fbfcfa; color:#182720; outline:none; }
+  input[type=number]:focus { border-color:var(--green2); box-shadow:0 0 0 3px rgba(36,85,72,.12); }
+  input[type=number]::-webkit-inner-spin-button { opacity:1; }
+  .denom-row input { font-variant-numeric:tabular-nums; }
+  .row-total { font-size:12px; color:var(--muted); text-align:right; margin-top:12px; }
+  .row-total strong { color:var(--green); font-size:18px; margin-left:6px; }
+  .named-area { margin-top:16px; padding-top:15px; border-top:1px solid var(--line); }
+  .named-line { display:grid; grid-template-columns:1fr minmax(120px,180px); align-items:center; gap:12px; }
+  .named-line label { font-weight:700; font-size:14px; }
+  .named-line span { display:block; font-weight:400; color:var(--muted); font-size:11px; margin-top:4px; }
+  .breakdown { background:#f3f7f3; border:1px solid #dce8de; border-radius:13px; padding:13px 14px; margin-top:12px; }
+  .break-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:5px 0; font-size:14px; }
+  .break-row strong { font-size:16px; font-variant-numeric:tabular-nums; }
+  .break-row.total { border-top:1px solid #dce8de; margin-top:5px; padding-top:11px; font-weight:800; }
+  .warning { color:#b42318; background:#fff0ee; border-radius:9px; padding:9px 11px; margin-top:10px; font-size:12px; display:none; }
+  .actions { display:flex; gap:9px; margin:16px 0 10px; }
+  button { border:0; border-radius:12px; padding:13px 15px; font-size:14px; font-weight:700; cursor:pointer; }
+  .btn-primary { background:var(--green); color:white; flex:1; }
+  .btn-secondary { background:white; color:var(--green); border:1px solid var(--line); }
+  .footnote { text-align:center; color:var(--muted); font-size:11px; line-height:1.6; margin-top:14px; }
+  @media(max-width:420px) {
+    .denom-head, .denom-row { grid-template-columns:minmax(0,1fr) 70px 82px; gap:6px; }
+    .panel { padding:16px 12px; }
+    .summary-card { padding:13px; }
+    .money { font-size:14px; }
+    input[type=number] { padding:10px 5px; }
+  }
+  @media print {
+    body { background:white; }
+    header { padding:14px 0; background:white; color:#111; border-bottom:2px solid #222; }
+    header p,.eyebrow { color:#444; opacity:1; }
+    main { padding:12px 0; }
+    .actions,.footnote { display:none; }
+    .panel,.summary-card { box-shadow:none; break-inside:avoid; }
+    .summary-card.primary { background:white; color:#111; }
+    .summary-card.primary .label { color:#444; }
+    input[type=number] { border:0; background:transparent; padding:4px 0; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="head-inner">
+    <div class="eyebrow">CHURCH · OFFERING COUNT</div>
+    <h1>헌금 계수</h1>
+    <p>권종별 수량을 입력하면 헌금 합계가 자동 계산됩니다.</p>
+  </div>
+</header>
+<main>
+  <section class="summary" aria-live="polite">
+    <div class="summary-card primary"><div class="label">전체 헌금 합계</div><div class="amount" id="grandTotal">0원</div></div>
+    <div class="summary-card"><div class="label">주일헌금 무기명</div><div class="amount" id="anonymousSummary">0원</div></div>
+  </section>
+  <section class="panel">
+    <div class="panel-title"><h2>주일헌금</h2></div>
+    <p class="sub">권종별 개수를 입력하면 합계가 자동 계산됩니다.</p>
+    <div class="denom-head"><span>권종</span><span style="text-align:right">개수</span><span style="text-align:right">금액</span></div>
+    <div id="sundayRows"></div>
+    <div class="row-total">주일헌금 합계 <strong id="sundayTotal">0원</strong></div>
+    <div class="named-area">
+      <div class="named-line"><label for="namedAmount">기명 금액 <span>주일헌금 중 이름이 확인된 헌금</span></label><input id="namedAmount" type="number" min="0" step="1" inputmode="numeric" placeholder="금액 입력" value="0"></div>
+      <div class="breakdown">
+        <div class="break-row"><span>기명</span><strong id="namedDisplay">0원</strong></div>
+        <div class="break-row"><span>무기명 (자동 계산)</span><strong id="anonymousAmount">0원</strong></div>
+        <div class="break-row total"><span>주일헌금 합계</span><strong id="sundayBreakTotal">0원</strong></div>
+      </div>
+      <div class="warning" id="namedWarning">기명 금액이 주일헌금 합계보다 큽니다. 금액을 확인해 주세요.</div>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="panel-title"><h2>십일조</h2></div>
+    <p class="sub">권종별 개수를 입력하세요.</p>
+    <div class="denom-head"><span>권종</span><span style="text-align:right">개수</span><span style="text-align:right">금액</span></div>
+    <div id="titheRows"></div>
+    <div class="row-total">십일조 합계 <strong id="titheTotal">0원</strong></div>
+  </section>
+  <div class="actions"><button class="btn-primary" id="printBtn" type="button">계수 결과 인쇄</button><button class="btn-secondary" id="resetBtn" type="button">전체 초기화</button></div>
+  <p class="footnote">입력한 금액은 이 화면에서 계산에만 사용됩니다. 별도 서버로 전송하거나 저장하지 않습니다.</p>
+</main>
+<script>
+(() => {
+  const denominations = [50000, 10000, 5000, 1000, 500, 100];
+  const fmt = n => Math.round(n).toLocaleString('ko-KR') + '원';
+  const safeCount = value => Math.max(0, Math.floor(Number(value) || 0));
+  const safeAmount = value => Math.max(0, Math.floor(Number(value) || 0));
+  function makeRows(containerId, prefix) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = denominations.map((denom, index) => `
+      <div class="denom-row"><div class="money">${denom.toLocaleString('ko-KR')}원<small>권종 금액</small></div>
+      <div><input type="number" min="0" step="1" inputmode="numeric" value="0" aria-label="${prefix} ${denom}원 개수" data-count="${prefix}-${index}"></div>
+      <div><input type="text" value="0원" readonly aria-label="${prefix} ${denom}원 금액" data-line="${prefix}-${index}"></div></div>`).join('');
+  }
+  makeRows('sundayRows', 'sunday'); makeRows('titheRows', 'tithe');
+  function calculateSection(prefix) {
+    let total = 0;
+    denominations.forEach((denom, index) => {
+      const countInput = document.querySelector(`[data-count="${prefix}-${index}"]`);
+      const count = safeCount(countInput.value);
+      if (countInput.value !== '' && Number(countInput.value) < 0) countInput.value = 0;
+      const line = count * denom; total += line;
+      document.querySelector(`[data-line="${prefix}-${index}"]`).value = fmt(line);
+    });
+    return total;
+  }
+  function update() {
+    const sunday = calculateSection('sunday'), tithe = calculateSection('tithe');
+    const namedInput = document.getElementById('namedAmount'), named = safeAmount(namedInput.value);
+    if (namedInput.value !== '' && Number(namedInput.value) < 0) namedInput.value = 0;
+    const anonymous = sunday - named;
+    document.getElementById('sundayTotal').textContent = fmt(sunday);
+    document.getElementById('sundayBreakTotal').textContent = fmt(sunday);
+    document.getElementById('titheTotal').textContent = fmt(tithe);
+    document.getElementById('namedDisplay').textContent = fmt(named);
+    document.getElementById('anonymousAmount').textContent = fmt(anonymous);
+    document.getElementById('anonymousSummary').textContent = fmt(anonymous);
+    document.getElementById('grandTotal').textContent = fmt(sunday + tithe);
+    document.getElementById('namedWarning').style.display = named > sunday ? 'block' : 'none';
+  }
+  document.addEventListener('input', event => { if (event.target.matches('input[type="number"]')) update(); });
+  document.getElementById('resetBtn').addEventListener('click', () => { document.querySelectorAll('input[type="number"]').forEach(input => input.value = '0'); update(); });
+  document.getElementById('printBtn').addEventListener('click', () => window.print());
+  update();
+})();
+</script>
+</body>
+</html>
