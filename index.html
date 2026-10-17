@@ -19,6 +19,10 @@
   .summary-card { background:var(--white); border:1px solid var(--line); border-radius:16px; padding:16px; }
   .summary-card .label { font-size:13px; color:var(--muted); margin-bottom:8px; }
   .summary-card .amount { font-size:clamp(20px,5vw,27px); font-weight:800; letter-spacing:-.03em; overflow-wrap:anywhere; }
+  .summary-detail { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; padding-top:10px; border-top:1px solid var(--line); }
+  .summary-detail div { display:flex; flex-direction:column; gap:3px; }
+  .summary-detail span { color:var(--muted); font-size:11px; }
+  .summary-detail strong { font-size:13px; font-weight:700; overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
   .summary-card.primary { background:var(--green); color:white; border-color:var(--green); }
   .summary-card.primary .label { color:#d5e4dc; }
   .panel { background:var(--white); border:1px solid var(--line); border-radius:18px; padding:18px 16px; margin-bottom:14px; box-shadow:0 2px 8px rgba(22,50,39,.035); }
@@ -80,11 +84,18 @@
 </header>
 <main>
   <section class="summary" aria-live="polite">
-    <div class="summary-card primary"><div class="label">전체 헌금 합계</div><div class="amount" id="grandTotal">0원</div></div>
-    <div class="summary-card"><div class="label">주일헌금 합계</div><div class="amount" id="sundaySummaryTotal">0원</div></div>
-    <div class="summary-card"><div class="label">주일헌금 · 기명</div><div class="amount" id="namedSummary">0원</div></div>
-    <div class="summary-card"><div class="label">주일헌금 · 무기명</div><div class="amount" id="anonymousSummary">0원</div></div>
-    <div class="summary-card"><div class="label">십일조 합계</div><div class="amount" id="titheSummaryTotal">0원</div></div>
+    <div class="summary-card">
+      <div class="label">주일헌금 합계</div>
+      <div class="amount" id="sundaySummaryTotal">0원</div>
+      <div class="summary-detail">
+        <div><span>기명</span><strong id="namedSummary">0원</strong></div>
+        <div><span>무기명</span><strong id="anonymousSummary">0원</strong></div>
+      </div>
+    </div>
+    <div class="summary-card">
+      <div class="label">십일조 합계</div>
+      <div class="amount" id="titheSummaryTotal">0원</div>
+    </div>
   </section>
   <section class="panel">
     <div class="panel-title"><h2>주일헌금</h2></div>
@@ -151,7 +162,7 @@
     document.getElementById('namedSummary').textContent = fmt(named);
     document.getElementById('anonymousSummary').textContent = fmt(anonymous);
     document.getElementById('titheSummaryTotal').textContent = fmt(tithe);
-    document.getElementById('grandTotal').textContent = fmt(sunday + tithe);
+    
     document.getElementById('namedWarning').style.display = named > sunday ? 'block' : 'none';
   }
   // 권종별 개수 입력칸을 누르면 기존 숫자를 지워 바로 새 수량을 입력할 수 있습니다.
