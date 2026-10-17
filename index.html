@@ -30,10 +30,10 @@
   .denom-row { padding:8px 0; border-top:1px solid #eef0eb; }
   .money { font-weight:700; font-size:15px; }
   .money small { display:block; color:var(--muted); font-size:11px; font-weight:400; margin-top:3px; }
-  input[type=number] { width:100%; min-width:0; border:1px solid #d9dfd8; border-radius:10px; padding:11px 7px; font-size:16px; text-align:right; background:#fbfcfa; color:#182720; outline:none; }
-  input[type=number]:focus { border-color:var(--green2); box-shadow:0 0 0 3px rgba(36,85,72,.12); }
+  input[type=number], input[type=text] { width:100%; min-width:0; height:44px; border:1px solid #d9dfd8; border-radius:10px; padding:10px 7px; font-family:inherit; font-size:15px; line-height:1.2; text-align:right; background:#fbfcfa; color:#182720; outline:none; font-variant-numeric:tabular-nums; }
+  input[type=number]:focus, input[type=text]:focus { border-color:var(--green2); box-shadow:0 0 0 3px rgba(36,85,72,.12); }
   input[type=number]::-webkit-inner-spin-button { opacity:1; }
-  .denom-row input { font-variant-numeric:tabular-nums; }
+  input[readonly] { background:#f3f5f1; color:#33443b; }
   .row-total { font-size:12px; color:var(--muted); text-align:right; margin-top:12px; }
   .row-total strong { color:var(--green); font-size:18px; margin-left:6px; }
   .named-area { margin-top:16px; padding-top:15px; border-top:1px solid var(--line); }
@@ -55,7 +55,7 @@
     .panel { padding:16px 12px; }
     .summary-card { padding:13px; }
     .money { font-size:14px; }
-    input[type=number] { padding:10px 5px; }
+    input[type=number], input[type=text] { height:42px; padding:9px 5px; font-size:14px; }
   }
   @media print {
     body { background:white; }
@@ -66,7 +66,7 @@
     .panel,.summary-card { box-shadow:none; break-inside:avoid; }
     .summary-card.primary { background:white; color:#111; }
     .summary-card.primary .label { color:#444; }
-    input[type=number] { border:0; background:transparent; padding:4px 0; }
+    input[type=number], input[type=text] { border:0; background:transparent; padding:4px 0; height:auto; }
   }
 </style>
 </head>
@@ -148,8 +148,22 @@
     document.getElementById('grandTotal').textContent = fmt(sunday + tithe);
     document.getElementById('namedWarning').style.display = named > sunday ? 'block' : 'none';
   }
-  document.addEventListener('input', event => { if (event.target.matches('input[type="number"]')) update(); });
-  document.getElementById('resetBtn').addEventListener('click', () => { document.querySelectorAll('input[type="number"]').forEach(input => input.value = '0'); update(); });
+  // 권종별 개수 입력칸을 누르면 기존 숫자를 지워 바로 새 수량을 입력할 수 있습니다.
+  document.addEventListener('click', event => {
+    const countInput = event.target.closest('input[data-count]');
+    if (countInput) {
+      countInput.value = '';
+      update();
+    }
+  });
+  document.addEventListener('input', event => {
+    if (event.target.matches('input[type="number"]')) update();
+  });
+  // 전체 초기화: 모든 권종 수량과 기명 금액을 0으로 되돌립니다.
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    document.querySelectorAll('input[type="number"]').forEach(input => input.value = '0');
+    update();
+  });
   document.getElementById('printBtn').addEventListener('click', () => window.print());
   update();
 })();
