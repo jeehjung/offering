@@ -52,6 +52,9 @@
   .top-actions { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin:0 0 14px; }
   .actions { display:flex; gap:9px; margin:16px 0 10px; }
   .actions .btn-primary { flex:1; }
+  .edit-mode-banner { display:none; margin:14px 0 0; padding:11px 13px; border:1px solid #d5e5d9; border-radius:11px; background:#edf6ef; color:#1c6b3c; font-size:13px; }
+  .edit-mode-banner.open { display:block; }
+  .actions .btn-secondary { flex:0 0 auto; }
   button { border:0; border-radius:12px; padding:13px 15px; font-size:14px; font-weight:700; cursor:pointer; }
   .btn-primary { background:var(--green); color:white; }
   .btn-secondary { background:white; color:var(--green); border:1px solid var(--line); }
@@ -149,8 +152,10 @@
     <div id="titheRows"></div>
     <div class="row-total">십일조 · 감사 · 장학 · 선교 합계 <strong id="titheTotal">0원</strong></div>
   </section>
+  <div class="edit-mode-banner" id="editModeBanner" role="status"></div>
   <div class="actions">
     <button class="btn-primary" id="saveBtn" type="button">저장</button>
+    <button class="btn-secondary" id="cancelEditBtn" type="button" style="display:none">수정 취소</button>
   </div>
   <div class="history-backdrop" id="historyBackdrop" role="dialog" aria-modal="true" aria-labelledby="historyTitle">
     <section class="history-panel" id="historyPanel" aria-label="저장된 헌금 기록">
@@ -219,6 +224,7 @@
     update();
   });
   const STORAGE_KEY = 'offering-counter-records-v1';
+  let editingRecordId = null;
 
   function getRecords() {
     try {
@@ -259,15 +265,58 @@
     };
   }
 
+  function setEditMode(record) {
+    editingRecordId = record ? record.id : null;
+    const banner = document.getElementById('editModeBanner');
+    const saveBtn = document.getElementById('saveBtn');
+    const cancelBtn = document.getElementById('cancelEditBtn');
+    if (record) {
+      banner.textContent = '수정 중: ' + (record.name || getWeekName(record.savedAt)) + ' · 저장하면 이 기록에 덮어씁니다.';
+      banner.classList.add('open');
+      saveBtn.textContent = '수정 내용 저장';
+      cancelBtn.style.display = '';
+    } else {
+      banner.textContent = '';
+      banner.classList.remove('open');
+      saveBtn.textContent = '저장';
+      cancelBtn.style.display = 'none';
+    }
+  }
+
   function saveCurrent() {
-    const record = currentSnapshot();
     try {
       const records = getRecords();
-      records.unshift(record);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
-      renderHistory();
-      openHistory();
-      alert('헌금 계수 내역을 저장했어요.');
+      if (editingRecordId) {
+        const existing = records.find(item => item.id === editingRecordId);
+        if (!existing) {
+          setEditMode(null);
+          alert('수정할 기록을 찾을 수 없어요. 기록을 다시 선택해 주세요.');
+          return;
+        }
+        if (existing.confirmed === true) {
+          setEditMode(null);
+          alert('확정된 기록은 수정할 수 없어요. 먼저 확정을 해제해 주세요.');
+          return;
+        }
+        const snapshot = currentSnapshot();
+        existing.counts = snapshot.counts;
+        existing.named = snapshot.named;
+        existing.sunday = snapshot.sunday;
+        existing.tithe = snapshot.tithe;
+        existing.updatedAt = new Date().toISOString();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+        setEditMode(null);
+        renderHistory();
+        openHistory();
+        alert('기존 기록을 수정했어요.');
+      } else {
+        const record = currentSnapshot();
+        records.unshift(record);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+        renderHistory();
+        openHistory();
+        alert('헌금 계수 내역을 저장했어요.');
+      }
     } catch (error) {
       alert('기록을 저장하지 못했어요. 브라우저 저장 공간 설정을 확인해 주세요.');
     }
@@ -296,6 +345,7 @@
         <div class="history-totals">주일헌금 ${fmt(record.sunday || 0)} (기명 ${fmt(record.named || 0)}, 무기명 ${fmt((record.sunday || 0) - (record.named || 0))})<br>십일조 · 감사 · 장학 · 선교 ${fmt(record.tithe || 0)}</div>
         <div class="history-actions">
           <button class="btn-primary" type="button" data-load-record="${record.id}">불러오기</button>
+          <button class="btn-secondary" type="button" data-edit-record="${record.id}" ${confirmed ? 'disabled title="확정 해제 후 수정할 수 있습니다"' : ''}>수정</button>
           <button class="${confirmed ? 'btn-confirmed' : 'btn-secondary'}" type="button" data-confirm-record="${record.id}">${confirmed ? '확정 해제' : '확정'}</button>
           <button class="btn-danger" type="button" data-delete-record="${record.id}" ${confirmed ? 'disabled title="확정 해제 후 삭제할 수 있습니다"' : ''}>기록 지우기</button>
         </div>
@@ -306,6 +356,7 @@
   function loadRecord(id) {
     const record = getRecords().find(item => item.id === id);
     if (!record) return;
+    setEditMode(null);
     document.querySelectorAll('input[data-count]').forEach(input => {
       input.value = record.counts && record.counts[input.dataset.count] ? record.counts[input.dataset.count] : '';
     });
@@ -378,7 +429,23 @@
     saveRecordChanges(records.filter(item => item.id !== id));
   }
 
+  function editRecord(id) {
+    const record = getRecords().find(item => item.id === id);
+    if (!record || record.confirmed === true) return;
+    document.querySelectorAll('input[data-count]').forEach(input => {
+      input.value = record.counts && record.counts[input.dataset.count] ? record.counts[input.dataset.count] : '';
+    });
+    document.getElementById('namedAmount').value = record.named || '';
+    update();
+    setEditMode(record);
+    closeHistory();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   document.getElementById('saveBtn').addEventListener('click', saveCurrent);
+  document.getElementById('cancelEditBtn').addEventListener('click', () => {
+    setEditMode(null);
+  });
   // 십일조 100원권 수량 입력 후 Enter를 누르면 저장합니다.
   document.querySelector('[data-count="tithe-5"]').addEventListener('keydown', event => {
     if (event.key === 'Enter') {
@@ -408,12 +475,14 @@
   });
   document.getElementById('historyList').addEventListener('click', event => {
     const loadButton = event.target.closest('[data-load-record]');
+    const editButton = event.target.closest('[data-edit-record]');
     const deleteButton = event.target.closest('[data-delete-record]');
     const nameButton = event.target.closest('[data-save-name]');
     const editNameButton = event.target.closest('[data-edit-name]');
     const cancelNameButton = event.target.closest('[data-cancel-name]');
     const confirmButton = event.target.closest('[data-confirm-record]');
     if (loadButton) loadRecord(loadButton.dataset.loadRecord);
+    if (editButton) editRecord(editButton.dataset.editRecord);
     if (deleteButton) deleteRecord(deleteButton.dataset.deleteRecord);
     if (nameButton) saveRecordName(nameButton.dataset.saveName);
     if (editNameButton) editRecordName(editNameButton.dataset.editName);
